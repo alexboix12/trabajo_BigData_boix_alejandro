@@ -1,0 +1,294 @@
+---
+title: | 
+  ![](imagenes/LaLiga_Logo.png){width=0.9in  style="opacity: 1;"}
+  
+  LA LIGA ESPAÑOLA EN PROFUNDIDAD
+
+description: |
+  Datos curiosos sobre la la liga española de fútbol, también conocida como "LaLiga". La cual, como todos sabemos la encontramos en el top 5 ligas europeas y del mundo.
+  Esto puede ser un poco como Mundo Maldini pero sin pasarse de frikadas (o eso creemos nosotros).
+  
+author: 
+- name: Adrià García
+  email: agardia3@alumni.uv.es
+  affiliation: Universitat de València
+- name: Alejandro Boix
+  email: boixroa@alumni.uv.es
+  affiliation: Universitat de València
+- name: Esteban Pardo
+  email: espar@alumni.uv.es
+  affiliation: Universitat de València
+  
+date: 2024-12-30
+
+categories: [trabajo BigData, LaLiga]
+
+format: 
+  html:
+    theme: united
+    highlight-style: a11y   
+    page-layout: full  
+    fontcolor: black
+---
+
+## Intro
+
+Para la realización de este proyecto hemos utilizado datos que podemos encontrar facilmente en internet. Concretamente [aquí](https://es.wikipedia.org/wiki/Primera_divisi%C3%B3n_de_f%C3%BAtbol_de_Espa%C3%B1a), o [aquí](https://es.wikipedia.org/wiki/Anexo:Estad%C3%ADsticas_de_la_Primera_Divisi%C3%B3n_de_Espa%C3%B1a).
+
+Para poder trabajar estos datos, hemos tenido que importarlos a excel y de ahí a RStudio. Pero como era un único excel con diferentes hojas y queríamos trabajar con cada una de ellas hemos cargado los datos en la memoria de R de la siguiente forma:
+
+```{r}
+library(readxl)
+
+library(tidyverse)
+
+datos_hoja1 <- read_excel("./datos/DatosLaLiga.xlsx", sheet = "Table 6")
+
+datos_hoja2 <- read_excel("./datos/DatosLaLiga.xlsx", sheet = "Table 2")
+
+datos_hoja3 <- read_excel("./datos/DatosLaLiga.xlsx", sheet = "Table 8")
+
+datos_hoja4 <- read_excel("./datos/DatosLaLiga.xlsx", sheet = "Table 7")
+
+datos_hoja5 <- read_excel("./datos/DatosLaLiga.xlsx", sheet = "Table 5")
+
+datos_hoja6 <- read_excel("./datos/DatosLaLiga.xlsx", sheet = "Table 4")
+```
+
+Los diferentes datasets contienen datos u observaciones recogidas a lo largo de los años, concretamente desde 1928-29 cuando todavía la Real Federación Española de Fútbol (RFEF) se llamaba Liga Nacional de Fútbol Profesional.
+
+Por último, vamos a organizar el trabajo en 2 partes principales. Primero hablaremos de los datos a nivel clubes y después, nos centraremos en los datos a nivel individual.
+
+## DATOS A NIVEL CLUBES
+
+### Equipos que están en primera división española (temporada 2023-2024)
+
+La liga de fútbol española es una de las más importantes del mundo, tanto por cantidad de buenos equipos como de buenos jugadores. Así, se posiciona como una de las grandes cinco ligas del fútbol mundial, peleando por ser la más competitiva. Es por ello, que esta liga tiene una gran repercusión a nivel mundial y en el siguiente gráfico se puede observar la posisición de España en el mapa mundial y dentro de este país, la ubicación exacta de cada estadio de los equipos de la liga española durante la temporada 2023-2024.
+
+```{r}
+
+#CREAR GRÁFICO DEL MUNDO Y QUE EN ESPAÑA SE VEA LA UBICACIÓN DE CADA ESTADIO DE LA LIGA EN LA TEMPORADA 23/24
+library(tidyverse)
+library(tmap)
+data(World)
+library(dplyr)
+library(ggplot2)
+#CREAMOS EL MAPA MUNDIAL
+my_world <- World %>% select(iso_a3, name, continent, life_exp, geometry)
+p1 <- ggplot(data = my_world) + geom_sf() +
+  labs(title = "ESTADIOS LA LIGA 23/24",
+       caption = "UBICACIÓN DE CADA ESTADIO")
+
+#HACEMOS ZOOM EN ESPAÑA
+p_esp <- p1 + 
+  coord_sf(
+    xlim = c(-15.00, 15.00), 
+    ylim = c(21, 47.44), 
+    #ylim = c(-90, 90),         #- latitud grados hasta el ecuador
+    #xlim = c(-180.00, 180.00), #- longitud (X): grados hasta meridiano de Greenwich 
+    expand = TRUE)
+
+#CREAMOS EL DATAFRAME CON LAS UBICACIONES DE CADA ESTADIO DE FÚTBOL
+my_estadios <- data.frame(
+  nombre = c("Real Madrid", "FC Barcelona", "Atlético de Madrid", "Athletic Club", 
+             "Sevilla FC", "Real Betis", "Real Sociedad", "Villarreal CF", "Valencia CF",
+             "Cadiz CF", "Granada CF", "Rayo Vallecano", "Getafe CF", "RCD Mallorca", 
+             "CA Osasuna", "Girona FC", "Deportivo Alavés", "UD Las Palmas", 
+             "UD Almería", "RC Celta"), 
+  longitude = c(-3.6884, 2.1228, -3.5998, -2.9350, -5.9701, -5.9810, 
+               -1.9756, -0.1023, -0.3585, -6.2825, 37.1593, -3.6543, 
+               -3.7143, 2.6502, -1.6375, 2.8068, -2.6738, -15.4441, 
+               -2.4349, -8.7401),
+  latitude = c(40.4531, 41.3809, 40.4362, 43.2641, 37.3842, 37.3565, 
+              43.3015, 39.9443, 39.4746, 36.5164, -3.6090, 40.3895, 
+              40.3259, 39.5905, 42.7960, 41.9794, 42.8459, 28.0997, 
+              36.8295, 42.2127))
+
+#PONER PUNTOS Y TEXTO DE CADA ESTADIO
+p_esp + 
+  geom_point(data = my_estadios, 
+             aes(x = longitude, y = latitude), 
+             size = 1, color = "darkred") +
+  geom_text(data = my_estadios, 
+            aes(x = longitude, y = latitude, label = nombre), 
+            color = "darkblue", fontface = "bold", check_overlap = TRUE, size = 0.5)
+#DEBIDO A LA CERCANÍA DE ALGUNOS ESTADIOS, AL ESTAR EN LA MISMA CIUDAD, SE TAPAN UNOS A OTROS
+```
+
+### Ganadores liga siglo XXI
+
+Para empezar el trabajo mencionaremos los equipos que han sido campones de liga desde la temporada 1928-1929 hasta la actual. Para ello, vamos a presentar un gráfico de barras que represente los ganadores que han habido en el siglo XXI y después, una tabla que resuma cuáles han sido los 3 mejores equipos de la liga española desde el primer cuarto del siglo XX.
+
+```{r}
+install.packages("ggplot2")
+library(ggplot2)
+
+Ultimos_ganadores <- datos_hoja6%>%
+           select(Temporada, Campeón) %>%
+           filter(Temporada >= "2000-2001")
+
+
+ggplot(Ultimos_ganadores, aes(x = Campeón)) +
+  geom_bar(fill = "darkgreen") +
+  labs(title = "Número de Campeonatos por Equipo (2000-2001 en adelante)",
+       x = "Equipo Campeón",
+       y = "Número de Campeonatos") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Como se puede apreciar tan sólo cuatro clubes diferentes han ganado la liga en los últimos 24 años. Observamos que en primer lugar se encuentra el FC. Barcelona con 11 campeonatos, en segundo lugar el Real Madrid con 9 y en tercer lugar tenemos dos equipos empatados con 2 títulos de liga cada uno, el Valencia CF y el Atlético de Madrid.
+
+La siguiente tabla nos va a mostrar de manera muy visual el *"podium"* (primer, segundo y tercer puesto) en cada una de las temporadas de las que disponemos datos.
+
+```{r}
+tabla1 <- gt::gt(datos_hoja5)
+
+tabla1 %>% gtExtras::gt_theme_pff()
+```
+
+En esta, podemos observar muchos aspectos interesantes, como por ejemplo el cambio de orden en el ranking de los clubes con más trofeos de liga. O algunos otros datos curiosos que muestran que han habido equipos que han hecho historia pertenciendo al top 3 mejores equipos en alguna de las temporadas pero que hoy en día juegan en ligas inferiores o que incluso ni se conocen, como es el caso del club "Arenas de Getxo".
+
+## Datos a nivel individual (jugador)
+
+Aunque la sección de datos a nivel clubes haya podido parecer algo breve, a continuación vamos a hablar con bastante profundidad de diferentes datos a nivel individual que resultan muy sorprendentes también, aunque hay algunos que no tanto.
+
+### Jugadores con más partidos de LaLiga
+
+En primer lugar vamos a mencionar cáles son los jugadores con más partidos en la historia de LaLiga. Para ello, vamos a mostraros con un gráfico de puntos (usando el paquete ggplot), aquellos jugadores que se encuentran el top 7 de más minutos jugados.
+
+```{r}
+Jugadores_mas_partidos <- datos_hoja3 %>%
+  group_by(Jugador, `Part.`) %>%
+  summarise(NN = n()) %>%
+  ungroup() %>%
+  arrange(desc(NN)) %>% 
+  slice(1:7) %>%
+  select(-NN)
+
+#Luego hacemos con el paquete ggplot el grafico para representar los valores
+ggplot(Jugadores_mas_partidos, aes(x = Jugador, y = `Part.`)) +
+  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+  theme_minimal() +
+  labs(
+    title = "TOP 7 Jugadores con más partidos",
+    subtitle = "Datos actualizados de la temporada 2024",
+    x = "Jugador",
+    y = "Número de partidos"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Un dato curioso es que el primer lugar está empatado a puntos entre Zubizarreta, el emblemático portero vasco que ha jugado en equipos como el FC Barcelona, el Athletic Club de Bilbao o el Valencia CF, con el gran Joaquín Sánchez al que muchos conocerán por sus chistes XD.
+
+```{r}
+imagen_joaquin <- "./imagenes/joaquin_broma.jpg"
+meme::meme (img = imagen_joaquin,
+            upper = "si es que es",
+            lower = "un máquina",
+            size = 2.0,
+            color = "green")
+```
+
+### Jugadores con más goles en LaLiga
+
+En segundo lugar, vamos a hablar de los 15 mayores goleadores de la liga española. Pero para poder valorar estos goles como realmente se merecen, debemos tener en cuenta en cuántos partidos han logrado alcanzar ese número de tantos. Por ello, hemos creado dos gráficos de barras y los hemos puesto uno al lado del otro con la función *(patchwork)*. A la izquierda tenemos el numéro de goles por jugador y a la derecha el número de partidos por jugador.
+
+```{r}
+datos_hoja4 <- datos_hoja4 %>%
+  select(Jugador, G., Part.)
+
+gg1 <- ggplot(datos_hoja4, aes(x = reorder(Jugador, G.), y = G.)) +
+  geom_bar(stat = "identity", aes(fill = Jugador)) +
+  labs(title = "Los 15 máximos goleadores de LaLiga",
+       x = "Jugador",
+       y = "Número de goles") +
+  theme(axis.text.x = element_text(size = 6, angle = 75, hjust = +1)) +
+  theme(legend.position = "none")
+
+
+gg2 <- ggplot(datos_hoja4, aes(x = reorder(Jugador, Part.), y = Part.)) +
+  geom_bar(stat = "identity", aes(fill = Jugador)) +
+  geom_point(shape=16, color = "black", size=3) +
+  labs(title = "Partidos jugados 15 max. goleadores",
+       x = "Jugador",
+       y = "Número de partidos jugados") +
+  theme(axis.text.x = element_text(size = 6, angle = 75, hjust = +1)) +
+  theme(legend.position = "none")
+
+library(patchwork)
+
+gg1 + gg2
+```
+
+Antes de observar con detenimiento los gráficos, podríamos pensar que hay una fuerte correlación entre el número de partidos jugador por los juagdores y el número total de goles anotados por cada uno de ellos. Es decir, que cuanto mayor es el número de partidos que juega un jugador, mayor será el número de goles.
+
+Pues bien, si analizamos los gráficos mostrados, podemos observar que no hay una relación clara entre estas dos variables. Por ejemplo, Antoine Griezmann es el tercer jugador con más partidos jugados entre los 15 que estamos viendo, pero es el jugador número 12 con más goles de LaLiga.
+
+Luego está Cristiano Ronaldo que es el segundo jugador con más número de goles en la historia de LaLiga (311 goles) con un total de 292 partidos y situándose el número 12 de 15 en el número total de partidos. Lo cual, aunque nos cueste un poco decirlo... **Es una barbaridad!!**
+
+Y bueno... No hace falta comentar esa barrita morada culpable de mandar a por uvas (aumentar) a la desviación típica de nuestro análisis estadístico de máximos goleadores históricos de LaLiga. Como todos podréis imaginar, es Messi. El extraterreste, GOAT o como lo quieres llamar... Cualquier nombre o adjetivo se le queda corto.
+
+```{r}
+imagen_LM10 <- "./imagenes/messi10.jpg"
+meme::meme (img = imagen_LM10,
+            upper = "El mejor de todos los tiempos",
+            lower = "los datos hablan por si solos",
+            size = 1.2,
+            color = "orange")
+
+```
+
+### Jugadores con registros TOP
+
+Como última parte de esta sección de datos individuales, hemos dejado lo mejor. Vamos a mostraros aquellos jugadores que han batido récords y que actualmente siguen perteneciédoles. Para ello, hemos realizado una tabla dinámica que permite verlo todo con mucha claridad.
+
+```{r}
+Jugador_Regsitros_TOP <- datos_hoja2 %>%
+           select(Récord,Primero) 
+          
+library(DT) 
+
+datatable(Jugador_Regsitros_TOP, 
+          options = list(pageLength = 10, autoWidth = TRUE),
+          caption = "Tabla de Récords y Jugadores en la Cima",
+          class = "cell-border stripe")
+
+```
+
+Como podemos observar, encontramos nombres muy conocidos en la tabla, Messi, Ronaldo... Pero nos gustaría destacar el de un jugador que actualmente está muy de moda, y merecido. **LAMINE YAMAL.**
+
+Este jugador nació el 13 de julio de 2007. Fecha que sorprende a todo el mundo que lo ha visto jugar, porque el nivel y la picardía que tiene en el campo es de un jugador mucho mayor.
+
+Podemos decir que es la mayor promesa del fútbol moderno. Y por suerte es ESPAÑOL!!
+
+```{r}
+imagen_LY19 <- "./imagenes/LY19.jpg"
+meme::meme(img = imagen_LY19,
+           upper = "FUTURA PROMESA",
+           lower = "con solo 17 años",
+           size = 2.0,
+           color = "blue")
+```
+
+## Conclusión
+
+Para concluir este proyecto con el que nos hemos entretenido tanto, nos gustaría dar una opinión relacionada con el fútbol y un poco personal pero que compartimos muchos aficionados. Los tres somos del Valencia, del equipo de nuestra ciudad. La verdad, y como todos sabréis, estamos pasando por un momento muy difícil y queremos dejar claro que a pesar de todo lo que pueda pasar siempre estaremos a este club que nos ha dado tanto... Pero, todos sabemos que en nuestras manos no está, sino en las manos de un empresario indecente que quiso venir aquí prometiéndonos un futuro mejor y realmente solo quería llenarse los bolsillos. Por ello, y sin entrar mucho en el tema porque no es bueno para la salud. Vamos a dejar unas fotos que van a conluir el trabajo demostrando un poco el sentiment valencià.
+
+```{r}
+imagen_VCF <- "./imagenes/VCF_liga2004.jpg"
+meme::meme (img = imagen_VCF,
+            upper = "aunque ahora vivamos de recuerdos...",
+            lower = "somos el mejor club del mundo!!",
+            size = 1.0,
+            color = "white")
+
+imagen_LIM <- "./imagenes/lim_go_home.jpg"
+meme::meme (img = imagen_LIM,
+            upper = "y no puede faltar:",
+            lower = "LIM GO HOME!!!!",
+            size = 2.0,
+            color = "yellow")
+```
+
+**SEMPRE, AMUNT VALÈNCIA!!!!**
